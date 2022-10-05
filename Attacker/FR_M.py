@@ -10,13 +10,16 @@ import torch.distributed as dist
 from torchvision.utils import make_grid
 from torch import autograd
 import imageio
-from models import Generator, Discriminator
+from models_cifar10 import Generator, Discriminator
 # from wgangp import WGANGP
 import numpy as np
 import os
-
+import torch.nn as nn
 import warnings
 warnings.filterwarnings("ignore")
+
+parser = argparse.ArgumentParser()
+
 
 def _call_method(method, rref, *args, **kwargs):
     """helper for _remote_method()"""
@@ -35,13 +38,32 @@ def param_rrefs(module):
         param_rrefs.append(rpc.RRef(param))
     print(param_rrefs)
     return param_rrefs
-
+def sum_of_layer(model_dicts, layer):
+    """
+    Sum of parameters of one layer for all models
+    """
+    layer_sum = model_dicts[0][layer]
+    for i in range(1, len(model_dicts)):
+        layer_sum += model_dicts[i][layer]
+    return layer_sum
+def average_model(model_dicts):
+    """
+    Average model by uniform weights
+    """
+    if len(model_dicts) == 1:
+        return model_dicts[0]
+    else:
+        weights = 1/len(model_dicts)
+        state_aggregate = model_dicts[0]
+    for layer in state_aggregate:
+        state_aggregate[layer] = weights*sum_of_layer(model_dicts, layer)
+    return state_aggregate
 
 
 class MDGANServer():
     """
     This is the class that encapsulates the functions that need to be run on the server side
-    MDGANServer class in client side has not been used by client.
+    This is the main driver of the training procedure.
     """
 
     def __init__(self, client_rrefs, epochs, use_cuda, n_critic, **kwargs):
@@ -71,9 +93,13 @@ class MDGANServer():
         
         if self.use_cuda:
             self._fixed_z = self._fixed_z.cuda()
-            
+            # self.generator.cuda()
+
 
     def save_gif(self):
+        # grid = make_grid(self.G(self._fixed_z).cpu().data, normalize=True)
+        # grid = np.transpose(grid.numpy(), (1, 2, 0))
+        # self.images.append(grid)
         imageio.mimsave('{}.gif'.format('mnist'), self.images)
 
     def fit(self):
@@ -134,18 +160,41 @@ class MDGANClient():
         print("initalized dataset: ", dataset)
         self.epochs = epochs
         self.latent_shape = [100, 1, 1]
-        self.use_cuda = False
+        self.use_cuda = use_cuda
         self.batch_size = batch_size
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        if self.device.type != 'cpu':
-            self.use_cuda = True
+        self.device = torch.device("cuda:0" if use_cuda else "cpu")
+
+        
         self.steps_per_epoch = 10
         print("steps_per_epoch: ", self.steps_per_epoch)
         self.discriminator = Discriminator()
-        if self.device.type != 'cpu':
+        self.discriminator.load_state_dict(torch.load("well_trained_cifar100_discriminator.sd")) 
+        self.discriminator.eval()   
+        print("loading discrimiantor.")
+        
+        
+        if self.use_cuda:
             self.discriminator.cuda()
         self.D_opt = torch.optim.Adam(self.discriminator.parameters(), lr=1e-4, betas=(0.5, 0.9))
 
+
+    def discriminator_weight_init_xavier(self, m):
+        if isinstance(m, nn.Conv2d):
+            torch.nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                torch.nn.init.zeros_(m.bias)
+
+    def discriminator_weight_init_normal(self, m):
+        if isinstance(m, nn.Conv2d):
+            torch.nn.init.normal_(m.weight)
+            if m.bias is not None:
+                torch.nn.init.zeros_(m.bias)        
+
+    def discriminator_weight_init_uniform(self, m):
+        if isinstance(m, nn.Conv2d):
+            torch.nn.init.uniform_(m.weight)
+            if m.bias is not None:
+                torch.nn.init.zeros_(m.bias)
 
     def send_client_refs(self):
         """Send a reference to the discriminator (for future RPC calls) and the conditioner, transformer and steps/epoch"""
@@ -158,6 +207,8 @@ class MDGANClient():
         
     def sample_latent(self):
         z = Variable(torch.randn(self.batch_size, *self.latent_shape))
+        # if self.use_cuda:
+        #     z = z.cuda()
         return z
 
     def get_discriminator_weights(self):
@@ -176,6 +227,8 @@ class MDGANClient():
         if self.device.type != 'cpu':
             self.discriminator.to(self.device)
 
+
+
     def get_steps_number(self):
         return self.steps_per_epoch
 
@@ -193,7 +246,6 @@ class MDGANClient():
 
         if self.use_cuda:
             interpolation = interpolation.cuda()
-        # print("shape of data", data.shape, generated_data.shape, interpolation.shape)
         interpolation_logits = self.discriminator(interpolation)
         grad_outputs = torch.ones(interpolation_logits.size())
 
@@ -233,9 +285,11 @@ class MDGANClient():
             return self.discriminator(testing_latent).tolist()
 
     def train_D(self):
-
+     
         return 0, 0
 
+
+    
 
 
 def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_critic):
@@ -311,3 +365,4 @@ if __name__ == "__main__":
             n_critic=args.n_critic
 
         )
+

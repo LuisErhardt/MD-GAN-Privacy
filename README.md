@@ -1,6 +1,6 @@
-# Attacks and Defenses for Free-Riders in Multi-Discriminator GAN 
+# Defending Against Free-Riders Attacks in Distirbuted Generative Adversarial Networks
 
-This repo is the testbed for paper ***Attacks and Defenses for Free-Riders in Multi-Discriminator GAN***. The demo shown here is the DFG+ defense on CIFAR10. The code contains three parts: `Server`, `BenignClient` and `Attacker`. The server is the generator. The `BenignClient` and `Attacker` are the discriminators (or free-riders). The testbed is a distributed framework realised on Pytorch RPC. The generator and discriminator can be placed on different computers, as long as they can communicate via internet. I will first introduce how to train the DSG+ algorithm (using CIFAR10 dataset as a demo). Then explain how to evaluate the results (i.e., Frechet Inception Distance (FID)) in the same way as we showed in the paper.
+This repo is the testbed for paper ***Defending Against Free-Riders Attacks in Distirbuted Generative Adversarial Networks***. The demo shown here is the DFG defense on CIFAR10. The code contains three parts: `Server`, `BenignClient` and `Attacker`. The server is the generator. The `BenignClient` and `Attacker` are the discriminators (or free-riders). The testbed is a distributed framework realised on Pytorch RPC. The generator and discriminator can be placed on different computers, as long as they can communicate via internet. I will first introduce how to train the DFG algorithm (using CIFAR10 dataset as a demo). Then explain how to evaluate the results (i.e., Frechet Inception Distance (FID)) in the same way as we showed in the paper.
 
 ## Training process
 
@@ -8,18 +8,18 @@ This repo is the testbed for paper ***Attacks and Defenses for Free-Riders in Mu
 ### Generator
 Since we use Pytorch RPC as our communication method, here are some parameters we need to provide to organize the MD-GAN. For example, to run the demo with CIFAR10 dataset with one benign client and one free-rider, we can first enter folder `Server` and type the following command:
 ```
-python3 Server_DFGPlus_CIFAR10.py -ip 131.180.41.146 -rank 0 -epochs 100 -batch_size 500 -n_critic 5 -world_size 3 -dataset cifar10
+python3 Server_DFG_NoSwapping_ISOLATION_FOREST_CIFAR10.py -ip 131.180.41.146 -rank 0 -epochs 100 -batch_size 500 -n_critic 5 -world_size 3 -dataset cifar10
 ```
-There are several parameters in this command. `ip` is the ip of the **server**. `rank` indicates the rank of the current runner. It's important to set `rank` as **0** for running server. `epoch` is self-explained, it is the training epoch number, but be careful, the epoch here equals to the notion `round` in the paper. `world_size` is the number of clients plus one server. For instance, here we set `world_size` to 3, it means we will have two clients. `dataset` is the name of training dataset that we will use in the **client** side. For this demo, the CIFAR10 dataset will be downloaded automatically by torchvision library if the CIFAR10 dataset is not available locally. 
+`Server_DFG_NoSwapping_ISOLATION_FOREST_CIFAR10.py` is for the MD-GAN experiment without swapping the discriminators and using isolation forest as the clustering method. There are several parameters in this command. `ip` is the ip of the **server**. `rank` indicates the rank of the current runner. It's important to set `rank` as **0** for running server. `epoch` is self-explained, it is the training epoch number, but be careful, the epoch here equals to the notion `round` in the paper. `world_size` is the number of clients plus one server. For instance, here we set `world_size` to 3, it means we will have two clients. `dataset` is the name of training dataset that we will use in the **client** side. For this demo, the CIFAR10 dataset will be downloaded automatically by torchvision library if the CIFAR10 dataset is not available locally. 
 
 ### BenignClient and Attacker
 Under `BenignClient` folder, we have the script `benign_client.py`. For client to join the MD-GAN, under `BenignClient` folder, run:
 ```
 python3 benign_client.py -ip 131.180.41.146  -rank 1 -epochs 100 -batch_size 500 -n_critic 5 -world_size 3
 ```
-And for free-rider to join the MD-GAN training, under `Attacker` folder, run
+And for free-rider (e.g., FL_L type free-rider) to join the MD-GAN training, under `Attacker` folder, run
 ```
-python3 attacker.py -ip 131.180.41.146  -rank 2 -epochs 100 -batch_size 500 -n_critic 5 -world_size 3
+python3 FR_L.py -ip 131.180.41.146  -rank 2 -epochs 100 -batch_size 500 -n_critic 5 -world_size 3
 ```
 No matter it is benign client or free-rider, they are just discriminators. The only difference between the parameters is the `-rank`. We need to make sure each node in the MD-GAN has its own unique rank. For `N` clients, their ranks should start from **1** to **N** without repetitions. And the `ip` is the server's ip.
 
@@ -45,7 +45,7 @@ export GLOO_SOCKET_IFNAME=eth0
 
 
 ### Output
-The above training process will generate data under  `Server/data/` folder. The output will be different folders with name starts with `cifar100-epoch`. For instance, for a folder named `cifar100-epoch89`, it contains the intermediate images generated by generator at 89th round. Each folder possesses 10 000 images. Each 5 round, it will generate one folder like that.
+The above training process will generate data under  `Server/data/` folder. The output will be different folders with name starts with `cifar10-epoch`. For instance, for a folder named `cifar10-epoch89`, it contains the intermediate images generated by generator at 89th round. Each folder possesses 10 000 images. Each 5 round, it will generate one folder like that.
 
 ## Evaluation of the result
 ### Data preparation
@@ -113,4 +113,4 @@ It will output something like:
 ('wrong prevention: ', 2)
 ('wrong permission: ', 0)
 ```
-which are the statistic of DFG+ defense.
+which are the statistic of DFG defense.
