@@ -459,7 +459,7 @@ class MDGANServer():
                             for idx, client_rref in enumerate(self.client_rrefs):
                                 # if client in ignore_clients list, skip the training of G by these clients
                                 if idx not in self.ignore_clients:
-                                    print("used cient: ", idx)
+                                    print("used client: ", idx)
                                     loss_g_list.append(client_rref.rpc_async().loss_G_data(fixed_latent))
 
                             loss_accumulated, output_value = loss_g_list[0].wait()
@@ -519,7 +519,7 @@ class MDGANServer():
                             for idx, client_rref in enumerate(self.client_rrefs):
                                 # if client in ignore_clients list, skip the training of G by these clients
                                 if idx not in self.ignore_clients:
-                                    print("used cient: ", idx)
+                                    print("used client: ", idx)
                                     loss_g_list.append(client_rref.rpc_async().loss_G())
 
                             loss_accumulated = loss_g_list[0].wait()
