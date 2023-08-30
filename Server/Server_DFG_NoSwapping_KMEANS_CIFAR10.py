@@ -624,7 +624,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
             world_size=world_size,
             backend=rpc.BackendType.TENSORPIPE,
             rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
-                num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}"
+                num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}", _transports=["uv"]
             ),
         )
         print("after init_rpc")
@@ -643,7 +643,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
             world_size=world_size,
             backend=rpc.BackendType.TENSORPIPE,
             rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
-                num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}"
+                num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}", _transports=["uv"]
             ),
         )
         print("client"+str(rank)+" is joining")
