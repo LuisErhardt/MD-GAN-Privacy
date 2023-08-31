@@ -204,7 +204,6 @@ class MDGANServer():
 
     def __init__(self, client_rrefs, epochs, use_cuda, batch_size, n_critic, **kwargs):
         # super(MDGANServer, self).__init__(**kwargs)
-        print("number of epochs in initialization: ", epochs)
         self.epochs = epochs
         self.use_cuda = use_cuda
         self.device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -786,7 +785,6 @@ class MDGANClient():
     """
 
     def __init__(self, dataset, epochs, use_cuda, batch_size, **kwargs):
-        print("number of epochs in initialization: ", epochs)
         self.epochs = epochs
         self.latent_shape = [100, 1, 1]
         self.use_cuda = use_cuda
@@ -950,10 +948,9 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
     os.environ["MASTER_PORT"] = str(port)
     os.environ["WORLD_SIZE"] = str(world_size)
     os.environ["RANK"] = str(rank)
-    print("number of epochs before initialization: ", epochs)
-    print("world size: ", world_size, f"tcp://{ip}:{port}")
+    # print("number of epochs before initialization: ", epochs)
+    # print("world size: ", world_size, f"tcp://{ip}:{port}")
     if rank == 0:  # this is run only on the server side
-        print("server")
         rpc.init_rpc(
             "server",
             rank=rank,
@@ -963,7 +960,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
                 num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}", _transports=["uv"]
             ),
         )
-        print("after init_rpc")
+        print("Server joined")
         clients = []
         for worker in range(world_size-1):
             clients.append(rpc.remote("client"+str(worker+1), MDGANClient, kwargs=dict(dataset=dataset, epochs = epochs, use_cuda = use_cuda, batch_size=batch_size)))
@@ -982,7 +979,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
                 num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}", _transports=["uv"]
             ),
         )
-        print("client"+str(rank)+" is joining")
+        print("Client"+str(rank)+" joined")
 
     rpc.shutdown()
 
