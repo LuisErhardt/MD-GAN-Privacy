@@ -472,7 +472,9 @@ class MDGANServer():
             writer.writerows(self.distance_matrix_records_sum) 
         with open("IGNORE_CLIENTS_5000ROWS_5CLIENT_0ATTACKER_ROUND1.csv", "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerows(self.ignore_clients_record)                    
+            writer.writerows(self.ignore_clients_record)   
+
+        self.save_gif()             
 
             
 
