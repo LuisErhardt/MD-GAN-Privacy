@@ -91,20 +91,20 @@ class MDGANServer():
 
         transform = transforms.Compose([transforms.Resize(32),transforms.ToTensor(),transforms.Normalize(mean=[0.5], std=[0.5])])
         if dataset == 'cifar100':
-            train_dataset = CIFAR100(root='data/cifar100', train=True, download=True, transform=transform)
-            # test_dataset = CIFAR10(root='data/cifar10', train=False, download=True, transform=transform)
+            train_dataset = CIFAR100(root='data/cifar100', train=True, download=False, transform=transform)
+            # test_dataset = CIFAR10(root='data/cifar10', train=False, download=False, transform=transform)
         if dataset == 'cifar10':
-            train_dataset = CIFAR10(root='data/cifar10', train=True, download=True, transform=transform)
-            # test_dataset = CIFAR10(root='data/cifar10', train=False, download=True, transform=transform)
+            train_dataset = CIFAR10(root='data/cifar10', train=True, download=False, transform=transform)
+            # test_dataset = CIFAR10(root='data/cifar10', train=False, download=False, transform=transform)
 
 
         if dataset == 'mnist':
-            train_dataset = MNIST(root='data/mnist', train=True, download=True, transform=transform)
-            test_dataset = MNIST(root='data/mnist', train=False, download=True, transform=transform)
+            train_dataset = MNIST(root='data/mnist', train=True, download=False, transform=transform)
+            test_dataset = MNIST(root='data/mnist', train=False, download=False, transform=transform)
 
         if dataset == 'fashion':
-            train_dataset = FashionMNIST(root='data/fashion', train=True, download=True, transform=transform)
-            test_dataset = FashionMNIST(root='data/fashion', train=False, download=True, transform=transform)
+            train_dataset = FashionMNIST(root='data/fashion', train=True, download=False, transform=transform)
+            test_dataset = FashionMNIST(root='data/fashion', train=False, download=False, transform=transform)
 
         full_dataset = train_dataset
         print(full_dataset.targets[0:10])
@@ -481,17 +481,17 @@ class MDGANClient():
             transforms.Normalize(mean=[0.5], std=[0.5])
         ])
         if dataset == 'cifar10':
-            train_dataset = CIFAR10(root='data/cifar10', train=True, download=True, transform=transform)
-            test_dataset = CIFAR10(root='data/cifar10', train=False, download=True, transform=transform)
+            train_dataset = CIFAR10(root='data/cifar10', train=True, download=False, transform=transform)
+            test_dataset = CIFAR10(root='data/cifar10', train=False, download=False, transform=transform)
 
 
         if dataset == 'mnist':
-            train_dataset = MNIST(root='data/mnist', train=True, download=True, transform=transform)
-            test_dataset = MNIST(root='data/mnist', train=False, download=True, transform=transform)
+            train_dataset = MNIST(root='data/mnist', train=True, download=False, transform=transform)
+            test_dataset = MNIST(root='data/mnist', train=False, download=False, transform=transform)
 
         if dataset == 'fashion':
-            train_dataset = FashionMNIST(root='data/fashion', train=True, download=True, transform=transform)
-            test_dataset = FashionMNIST(root='data/fashion', train=False, download=True, transform=transform)
+            train_dataset = FashionMNIST(root='data/fashion', train=True, download=False, transform=transform)
+            test_dataset = FashionMNIST(root='data/fashion', train=False, download=False, transform=transform)
 
         full_dataset = ConcatDataset([train_dataset, test_dataset])
         self.steps_per_epoch = full_dataset.shape[0] // batch_size
