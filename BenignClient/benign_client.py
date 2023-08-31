@@ -37,96 +37,7 @@ def param_rrefs(module):
     print(param_rrefs)
     return param_rrefs
 
-
-
-class MDGANServer():
-    """
-    This is the class that encapsulates the functions that need to be run on the server side
-    This is the main driver of the training procedure.
-    """
-
-    def __init__(self, client_rrefs, epochs, use_cuda, n_critic, **kwargs):
-        # super(MDGANServer, self).__init__(**kwargs)
-        self.epochs = epochs
-        self.use_cuda = use_cuda
-        self.device = torch.device("cuda:0" if use_cuda else "cpu")
-        self.n_critic = n_critic
-        self.latent_shape = [100, 1, 1]
-        self._fixed_z = torch.randn(64, *self.latent_shape)
-        self.images = []
-
-        # keep a reference to the client
-        self.client_rrefs = []
-        for client_rref in client_rrefs:
-            self.client_rrefs.append(client_rref)
-
-        self.generator = Generator(100)
-        self.G_opt = dist.optim.DistributedOptimizer(
-            optim.Adam, param_rrefs(self.generator), lr=2e-4, betas=(0.5, 0.9), weight_decay=1e-6
-        )
-        # self.G_opt = torch.optim.Adam(self.generator.parameters(), lr=1e-4, betas=(0.5, 0.9))
-        # register generator for each client.
-        for client_rref in self.client_rrefs:
-            client_rref.remote().register_G(rpc.RRef(self.generator)) 
-        
-        if self.use_cuda:
-            self._fixed_z = self._fixed_z.cuda()
-            # self.generator.cuda()
-
-
-    def save_gif(self):
-        # grid = make_grid(self.G(self._fixed_z).cpu().data, normalize=True)
-        # grid = np.transpose(grid.numpy(), (1, 2, 0))
-        # self.images.append(grid)
-        imageio.mimsave('{}.gif'.format('mnist'), self.images)
-
-    def fit(self):
-
-        """
-        E: the interval epochs to swap models
-        """
-
-        steps_per_epoch_list = []
-        for client_rref in self.client_rrefs:
-            steps_per_epoch_list.append(client_rref.remote().get_steps_number().to_here())
-        self.steps_per_epoch = np.max(steps_per_epoch_list)
-
-        for i in range(self.epochs):
-            print("training epoch: ", i)
-            loss_fut_list = []
-            for client_rref in self.client_rrefs:
-                print("D step update")
-                loss_fut = client_rref.rpc_async().train_D()
-                loss_fut_list.append(loss_fut)
-
-            for id_ in range(len(self.client_rrefs)):
-                loss_d, pen = loss_fut_list[id_].wait()
-                print("LOSS D: ", loss_d, pen)
-
-            if self.epochs % self.n_critic == 0:
-                grid = make_grid(self.generator(self._fixed_z), normalize=True)
-                grid = np.transpose(grid.numpy(), (1, 2, 0))
-                self.images.append(grid)
-
-
-            if i % self.n_critic == 0:
-                for i in range(self.steps_per_epoch):
-                    with dist.autograd.context() as G_context:
-                        loss_g_list = []
-                        for client_rref in self.client_rrefs:
-                            print("G step update")
-                            loss_g_list.append(client_rref.rpc_async().loss_G())
-
-                        loss_accumulated = loss_g_list[0].wait()
-                        for j in range(1, len(loss_g_list)):
-                            loss_accumulated += loss_g_list[j].wait()
-                        
-                        dist.autograd.backward(G_context, [loss_accumulated])
-                        self.G_opt.step(G_context)
-        self.save_gif()
             
-
-
 class MDGANClient():
     """
     This is the class that encapsulates the functions that need to be run on the client side
@@ -300,26 +211,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
     os.environ["RANK"] = str(rank)
     # print("number of epochs before initialization: ", epochs)
     # print("world size: ", world_size, f"tcp://{ip}:{port}")
-    if rank == 0:  # this is run only on the server side
-        rpc.init_rpc(
-            "server",
-            rank=rank,
-            world_size=world_size,
-            backend=rpc.BackendType.TENSORPIPE,
-            rpc_backend_options=rpc.TensorPipeRpcBackendOptions(
-                num_worker_threads=8, rpc_timeout=120, init_method=f"tcp://{ip}:{port}", _transports=["uv"]
-            ),
-        )
-        print("Server joined")
-        clients = []
-        for worker in range(world_size-1):
-            clients.append(rpc.remote("client"+str(worker+1), MDGANClient, kwargs=dict(dataset=dataset, epochs = epochs, use_cuda = use_cuda, batch_size=batch_size)))
-            print("register remote client"+str(worker+1), clients[0])
-
-        synthesizer = MDGANServer(clients, epochs, use_cuda, batch_size, n_critic)
-        synthesizer.fit()
-
-    elif rank != 0:
+    if rank != 0:
         rpc.init_rpc(
             "client"+str(rank),
             rank=rank,
