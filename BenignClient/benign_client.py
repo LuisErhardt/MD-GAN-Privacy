@@ -16,6 +16,8 @@ import numpy as np
 import os
 
 import warnings
+
+from torchvision.datasets.utils import check_integrity
 warnings.filterwarnings("ignore")
 
 
@@ -204,6 +206,7 @@ class MDGANClient():
 
 
 def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_critic):
+    print("Client", str(rank), "BenignClient Data:", check_integrity('data/cifar10/cifar-10-batches-py/data_batch_1'))
     # set environment information
     os.environ["MASTER_ADDR"] = ip
     os.environ["MASTER_PORT"] = str(port)
