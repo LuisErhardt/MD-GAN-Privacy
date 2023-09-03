@@ -11,7 +11,8 @@ from torch.distributed.optim import DistributedOptimizer
 import torch.optim as optim
 from torchvision.utils import make_grid
 from torch import autograd
-import imageio
+import glob
+from PIL import Image
 from models import Generator, Discriminator
 from torchvision.utils import save_image
 # from wgangp import WGANGP
@@ -341,11 +342,15 @@ class MDGANServer():
         #     z = z.cuda()
         return self.generator(z)
 
-    def save_gif(self):
-        # grid = make_grid(self.G(self._fixed_z).cpu().data, normalize=True)
-        # grid = np.transpose(grid.numpy(), (1, 2, 0))
-        # self.images.append(grid)
-        imageio.mimsave('{}.gif'.format('mnist'), self.images)
+    def save_gif(input_path, output_path):
+        allFrames = []
+        for dir in glob.glob(f"{input_path}cifar10-epoch*"):
+            print(dir)
+            frames = [Image.open(image) for image in glob.glob(f"{dir}/*.jpg")]
+            allFrames.extend(frames)
+        frame_one = allFrames[0]
+        frame_one.save(output_path, format="GIF", append_images=frames,
+                save_all=True, duration=200, loop=0)
 
     def gradient_penalty(self, data, generated_data, gamma=10):
         batch_size = data.size(0)
