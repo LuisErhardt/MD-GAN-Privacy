@@ -212,7 +212,7 @@ class MDGANServer():
     This is the main driver of the training procedure.
     """
 
-    def __init__(self, client_rrefs, epochs, use_cuda, batch_size, n_critic, **kwargs):
+    def __init__(self, client_rrefs, epochs, use_cuda, batch_size, n_critic, dataset, **kwargs):
         # super(MDGANServer, self).__init__(**kwargs)
         self.epochs = epochs
         self.use_cuda = use_cuda
@@ -230,9 +230,6 @@ class MDGANServer():
         self.attempted_switch = []
         self.success_switch = []
 
-
-
-        dataset = 'cifar10'
 
         transform = transforms.Compose([transforms.Resize(32),transforms.ToTensor(),transforms.Normalize(mean=[0.5], std=[0.5])])
         if dataset == 'cifar100':
@@ -796,7 +793,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
             clients.append(rpc.remote("client"+str(worker+1), MDGANClient, kwargs=dict(dataset=dataset, epochs = epochs, use_cuda = use_cuda, batch_size=batch_size)))
             print("register remote client"+str(worker+1), clients[0])
 
-        synthesizer = MDGANServer(clients, epochs, use_cuda, batch_size, n_critic)
+        synthesizer = MDGANServer(clients, epochs, use_cuda, batch_size, n_critic, dataset)
         synthesizer.fit()
 
     elif rank != 0:

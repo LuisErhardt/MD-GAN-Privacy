@@ -116,7 +116,7 @@ class MDGANServer():
     This is the main driver of the training procedure.
     """
 
-    def __init__(self, client_rrefs, epochs, use_cuda, batch_size, n_critic, **kwargs):
+    def __init__(self, client_rrefs, epochs, use_cuda, batch_size, n_critic, dataset, **kwargs):
         # super(MDGANServer, self).__init__(**kwargs)
         self.epochs = epochs
         self.use_cuda = use_cuda
@@ -131,8 +131,6 @@ class MDGANServer():
         self.distance_matrix_records_sum = []
         self.ignore_clients_record = []
 
-        dataset = 'cifar10'
-
         transform = transforms.Compose([transforms.Resize(32),transforms.ToTensor(),transforms.Normalize(mean=[0.5], std=[0.5])])
         if dataset == 'cifar100':
             train_dataset = CIFAR100(root='data/cifar100', train=True, download=False, transform=transform)
@@ -144,11 +142,11 @@ class MDGANServer():
 
         if dataset == 'mnist':
             train_dataset = MNIST(root='data/mnist', train=True, download=False, transform=transform)
-            test_dataset = MNIST(root='data/mnist', train=False, download=False, transform=transform)
+            # test_dataset = MNIST(root='data/mnist', train=False, download=False, transform=transform)
 
         if dataset == 'fashion':
             train_dataset = FashionMNIST(root='data/fashion', train=True, download=False, transform=transform)
-            test_dataset = FashionMNIST(root='data/fashion', train=False, download=False, transform=transform)
+            # test_dataset = FashionMNIST(root='data/fashion', train=False, download=False, transform=transform)
 
         full_dataset = train_dataset
         print(full_dataset.targets[0:10])
@@ -250,7 +248,7 @@ class MDGANServer():
         #     z = z.cuda()
         return self.generator(z)
 
-    def save_gif(input_path, output_path):
+    def save_gif(self, input_path, output_path):
         allFrames = []
         for dir in glob.glob(f"{input_path}cifar10-epoch*"):
             print(dir)
@@ -477,11 +475,7 @@ class MDGANServer():
             writer.writerows(self.distance_matrix_records_sum) 
         with open("IGNORE_CLIENTS_5000ROWS_5CLIENT_0ATTACKER_ROUND1.csv", "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerows(self.ignore_clients_record)   
-
-        print("Start saving GIF")
-        self.save_gif("data/", "data/animation.gif")    
-        print("GIF saved")         
+            writer.writerows(self.ignore_clients_record)       
 
 
 class MDGANClient():
@@ -651,7 +645,7 @@ def run(rank, world_size, ip, port, dataset, epochs, use_cuda, batch_size, n_cri
             clients.append(rpc.remote("client"+str(worker+1), MDGANClient, kwargs=dict(dataset=dataset, epochs = epochs, use_cuda = use_cuda, batch_size=batch_size)))
             print("register remote client"+str(worker+1), clients[0])
 
-        synthesizer = MDGANServer(clients, epochs, use_cuda, batch_size, n_critic)
+        synthesizer = MDGANServer(clients, epochs, use_cuda, batch_size, n_critic, dataset)
         synthesizer.fit()
 
     elif rank != 0:
