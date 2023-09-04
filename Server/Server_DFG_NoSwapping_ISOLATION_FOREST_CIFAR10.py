@@ -250,7 +250,7 @@ class MDGANServer():
         #     z = z.cuda()
         return self.generator(z)
 
-    def save_gif(input_path, output_path):
+    def save_gif(self, input_path, output_path):
         allFrames = []
         for dir in glob.glob(f"{input_path}cifar10-epoch*"):
             print(dir)
@@ -477,11 +477,7 @@ class MDGANServer():
             writer.writerows(self.distance_matrix_records_sum) 
         with open("IGNORE_CLIENTS_5000ROWS_5CLIENT_0ATTACKER_ROUND1.csv", "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerows(self.ignore_clients_record)   
-
-        print("Start saving GIF")
-        self.save_gif("data/", "data/animation.gif")    
-        print("GIF saved")         
+            writer.writerows(self.ignore_clients_record)          
 
 
 class MDGANClient():
