@@ -21,6 +21,8 @@ import numpy as np
 import os
 import csv
 from scipy.spatial import distance_matrix
+from pathlib import Path
+
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -452,6 +454,7 @@ class MDGANServer():
                     save_image(img, 'data/cifar10-epoch{}/{:05d}.jpg'.format(j,idx))
 
         # save Discriminator models
+        Path("savedModels").mkdir(parents=False, exist_ok=True)
         for id, client in enumerate(self.client_rrefs):
             PATH = 'savedModels/Discriminator{}_state_dict_model.pt'.format(id)
             torch.save(client.rpc_sync().get_discriminator_weights(), PATH)
