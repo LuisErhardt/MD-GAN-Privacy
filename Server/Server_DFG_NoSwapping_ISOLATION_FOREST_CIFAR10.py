@@ -467,7 +467,10 @@ class MDGANServer():
                 for idx, img in enumerate(generation):
                     save_image(img, 'data/cifar10-epoch{}/{:05d}.jpg'.format(j,idx))
 
-            
+        # save Discriminator models
+        for id, client in enumerate(self.client_rrefs):
+            PATH = 'savedModels/Discriminator{}_state_dict_model.pt'.format(id)
+            torch.save(client.rpc_sync().get_discriminator_weights(), PATH)    
 
         with open("DISTANCE_MATRIX_5000ROWS_5CLIENT_0ATTACKER_LIST_ROUND1.csv", "w", newline="") as f:
             writer = csv.writer(f)
