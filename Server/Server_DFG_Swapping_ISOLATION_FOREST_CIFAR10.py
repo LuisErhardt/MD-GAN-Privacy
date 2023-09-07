@@ -416,6 +416,29 @@ class MDGANServer():
             self.D_opt.step()
 
         return d_loss.item(), grad_penalty.item()
+    
+    def save_Generation(self, epoch):
+        generation = self.sample_total_generation()
+        print("generation: ", generation.shape)
+        print("generations shape after transpose: ", generation.shape)
+        path = 'data/cifar10-epoch{}'.format(epoch)
+
+        # Check whether the specified path exists or not
+        isExist = os.path.exists(path)
+        if not isExist:     
+            # Create a new directory because it does not exist 
+            os.makedirs(path)
+            print("The new directory is created!")
+
+        for idx, img in enumerate(generation):
+            save_image(img, 'data/cifar10-epoch{}/{:05d}.jpg'.format(epoch, idx))
+
+    def save_Discriminator_models(self, epoch):
+        dir = 'savedModels/epoch{}'.format(epoch)
+        Path(dir).mkdir(parents=True, exist_ok=True)
+        for id, client in enumerate(self.client_rrefs):
+            PATH = dir + '/Discriminator{}_state_dict_model.pt'.format(id)
+            torch.save(client.rpc_sync().get_discriminator_weights(), PATH)
 
     def fit(self):
 
@@ -538,23 +561,13 @@ class MDGANServer():
                             dist.autograd.backward(G_context, [loss_accumulated])
                             self.G_opt.step(G_context)
             
-            # for record the progress of the image generation
-            if (j+1) % 5 == 0: # each 5 epochs, we generate a batch of image to detect the quality
-                generation = self.sample_total_generation()
-                print("generation: ", generation.shape)
-                print("generations shape after transpose: ", generation.shape)
-                path = 'data/cifar10-epoch{}'.format(j)
+            # Each 20 epochs
+            if (j+1) % 20 == 0: 
+                # Generate a batch of images to detect the quality
+                self.save_Generation(j)
 
-                # Check whether the specified path exists or not
-                isExist = os.path.exists(path)
-                if not isExist:     
-                    # Create a new directory because it does not exist 
-                    os.makedirs(path)
-                    print("The new directory is created!")
-
-                for idx, img in enumerate(generation):
-                    save_image(img, 'data/cifar10-epoch{}/{:05d}.jpg'.format(j,idx))
-
+                # Save the discriminator models to files
+                self.save_Discriminator_models(j)
 
             # for swapping models
             if  len(self.client_rrefs) > 1 and j > 0 and j % 10 == 0: # j%10 means swapping models every 10 epochs
@@ -590,11 +603,6 @@ class MDGANServer():
                                 self.client_rrefs[random_index].rpc_sync().set_discriminator_weights(self.client_rrefs[index].rpc_sync().get_discriminator_weights())
                                 self.client_rrefs[index].rpc_sync().set_discriminator_weights(state_dic_temp)
 
-        # save Discriminator models
-        Path("savedModels").mkdir(parents=False, exist_ok=True)
-        for id, client in enumerate(self.client_rrefs):
-            PATH = 'savedModels/Discriminator{}_state_dict_model.pt'.format(id)
-            torch.save(client.rpc_sync().get_discriminator_weights(), PATH)
 
         with open("DISTANCE_MATRIX_5000ROWS_5CLIENT_0attacker_LIST_ROUND2.csv", "w", newline="") as f:
             writer = csv.writer(f)
