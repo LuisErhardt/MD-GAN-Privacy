@@ -604,30 +604,6 @@ class MDGANServer():
                                 self.client_rrefs[index].rpc_sync().set_discriminator_weights(state_dic_temp)
 
 
-        with open("DISTANCE_MATRIX_5000ROWS_5CLIENT_0attacker_LIST_ROUND2.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(self.distance_matrix_records) 
-
-        with open("DISTANCE_MATRIX_5000ROWS_5CLIENT_0attacker_SUM_ROUND2.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(self.distance_matrix_records_sum) 
-
-        with open("IGNORE_CLIENTS_5000ROWS_5CLIENT_0attacker_ROUND2.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(self.ignore_clients_record)        
-
-        with open("ATTEMPTED_SWITCH_5000ROWS_5CLIENT_0attacker_ROUND2.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(self.attempted_switch)                    
-
-        with open("SUCCESS_SWITCH_5000ROWS_5CLIENT_0attacker_ROUND2.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(self.success_switch)                    
-
-            
-
-
-
 class MDGANClient():
     """
     This is the class that encapsulates the functions that need to be run on the client side

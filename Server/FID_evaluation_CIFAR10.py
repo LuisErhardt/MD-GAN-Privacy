@@ -1,32 +1,47 @@
-
-import numpy as np
-from fid_score import calculate_fid_given_paths
+from pytorch_fid.fid_score import calculate_fid_given_paths
 import os
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+import csv
 
-check_points = np.arange(4, 100, 5)
-folder_name = ['data/cifar10-epoch{}'.format(j) for j in check_points]
+def array_of_epochs(interval, multiple):
+    if multiple <= 0 or interval <= 0:
+        return []
 
-num_avail_cpus = len(os.sched_getaffinity(0))
-num_workers = min(num_avail_cpus, 8)
-# result_list = []
-# for dir in folder_name:
-result_list = calculate_fid_given_paths(['data/cifar10/', folder_name],
-                                        500,
-                                        'cuda:0',
-                                        2048,
-                                        num_workers)
-# result_list.append(fid_value)
-# print(fid_value)
+    result = []
+    epoch = interval - 1 # epochs start at 0
 
+    for i in range(multiple):
+        result.append(str(epoch))
+        epoch += interval
 
-print(result_list)
+    return result
 
+def main():
+    dirs = []
+    for epoch in array_of_epochs(20, 15):
+        dir = 'data/cifar10-epoch{}'.format(epoch)
+        dirs.append(dir)
 
-# Open Files
-resultFyle = open("FID_CIFAR10_1BENIGN_1ATTACKER_ROUND1.csv",'w')
+    num_avail_cpus = len(os.sched_getaffinity(0))
+    num_workers = min(num_avail_cpus, 8)
+    path_of_test_images = "data/imgs"
 
-# Write data to file
-for r in result_list:
-    resultFyle.write(str(r) + "\n")
-resultFyle.close()
+    result_fids = []
+    for dir in dirs:
+        fid = calculate_fid_given_paths([path_of_test_images, dir ], 500, 'cuda:0', 2048, num_workers)
+        result_fids.append([dir, fid])
+
+    print(result_fids)
+
+    csv_filename = "result_fids.csv"
+
+    # Open the CSV file in write mode
+    with open(csv_filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+        # writer.writerow(["Dir", "FID"])  # Uncomment this line if you want headers
+
+        for row in result_fids:
+            writer.writerow(row)
+
+if __name__ == "__main__":
+    main()
